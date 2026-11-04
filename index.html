@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>얼굴 메이커</title>
+<style>
+  :root {
+    --bg: #f4f1ec;
+    --panel: #ffffff;
+    --ink: #2b2622;
+    --muted: #7a716a;
+    --line: #e5dfd8;
+    --accent: #e0664f;
+    --accent-ink: #ffffff;
+    --track: #e9e3dc;
+    --good: #3a9d6a;
+    --stage: #fbf8f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1d1a18; --panel: #282421; --ink: #f1ebe5; --muted: #a59b92;
+      --line: #3a3430; --track: #3a3430; --stage: #231f1c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1d1a18; --panel: #282421; --ink: #f1ebe5; --muted: #a59b92;
+    --line: #3a3430; --track: #3a3430; --stage: #231f1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  }
+  header {
+    max-width: 1180px; margin: 0 auto; padding: 20px 16px 8px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+  }
+  h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.02em; }
+  .tabs { display: flex; gap: 4px; background: var(--track); padding: 4px; border-radius: 999px; }
+  .tabs button {
+    border: 0; background: transparent; color: var(--ink); font: inherit; font-weight: 600;
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .tabs button.on { background: var(--panel); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  main {
+    max-width: 1180px; margin: 0 auto; padding: 8px 16px 32px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 20px; align-items: start;
+  }
+  @media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .stage {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 16px;
+    position: sticky; top: 12px;
+  }
+  @media (max-width: 860px) { .stage { position: static; } }
+  .faces { display: flex; gap: 12px; align-items: stretch; }
+  .face-box { flex: 1 1 0; min-width: 0; background: var(--stage); border-radius: 14px; position: relative; }
+  .face-box svg { display: block; width: 100%; height: auto; max-height: 62vh; }
+  .face-box .tag {
+    position: absolute; top: 10px; left: 12px; font-size: .8rem; font-weight: 700; color: var(--muted);
+  }
+  #targetBox { display: none; }
+  body.game #targetBox { display: block; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-weight: 600;
+    padding: 10px 16px; border-radius: 12px; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .game-ui { display: none; margin-top: 14px; }
+  body.game .game-ui { display: block; }
+  body.game .free-only { display: none; }
+  .meter { height: 14px; background: var(--track); border-radius: 999px; overflow: hidden; }
+  .meter > div { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .15s, background .3s; }
+  .meter.win > div { background: var(--good); }
+  .stats { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; font-size: .9rem; color: var(--muted); }
+  .stats b { color: var(--ink); font-size: 1.05rem; }
+  .msg { margin-top: 10px; font-weight: 700; min-height: 1.4em; }
+  .msg.win { color: var(--good); }
+
+  .panel { display: flex; flex-direction: column; gap: 12px; }
+  details.group {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 10px;
+  }
+  details.group summary {
+    cursor: pointer; font-weight: 800; padding: 10px 0 6px; list-style: none; display: flex; justify-content: space-between;
+  }
+  details.group summary::-webkit-details-marker { display: none; }
+  details.group summary::after { content: "▾"; color: var(--muted); }
+  details.group:not([open]) summary::after { content: "▸"; }
+  .row { padding: 7px 0; }
+  .row.hint { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 10px; margin: 0 -8px; padding: 7px 8px; }
+  .row label { display: flex; justify-content: space-between; font-size: .92rem; margin-bottom: 6px; }
+  .row label span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px;
+    background: var(--track); outline: none; margin: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--panel); border: 3px solid var(--accent); cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%; background: var(--panel); border: 3px solid var(--accent); cursor: pointer;
+  }
+  input[type=range].grad { height: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>😊 얼굴 메이커</h1>
+  <div class="tabs" role="tablist">
+    <button id="tabFree" class="on">자유 꾸미기</button>
+    <button id="tabGame">얼굴 맞추기 게임</button>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="faces">
+      <div class="face-box" id="targetBox"><span class="tag">🎯 목표 얼굴</span><svg id="targetSvg" viewBox="0 0 400 500"></svg></div>
+      <div class="face-box"><span class="tag" id="myTag">내 얼굴</span><svg id="faceSvg" viewBox="0 0 400 500"></svg></div>
+    </div>
+
+    <div class="actions free-only">
+      <button class="btn primary" id="randomBtn">🎲 랜덤</button>
+      <button class="btn" id="resetBtn">↺ 초기화</button>
+      <button class="btn" id="saveBtn">💾 PNG 저장</button>
+    </div>
+
+    <div class="game-ui">
+      <div class="meter" id="meter"><div></div></div>
+      <div class="stats">
+        <span>일치도 <b id="matchPct">0%</b></span>
+        <span>라운드 <b id="round">1</b></span>
+        <span>시간 <b id="timer">0.0s</b></span>
+        <span>최고 기록 <b id="best">-</b></span>
+      </div>
+      <div class="msg" id="msg">막대바를 움직여 목표 얼굴과 똑같이 만들어 보세요! (90% 이상이면 성공)</div>
+      <div class="actions">
+        <button class="btn" id="hintBtn">💡 힌트</button>
+        <button class="btn primary" id="nextBtn">다음 얼굴 ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel"></section>
+</main>
+
+<script>
+// ---------- 슬라이더 정의 ----------
+const GROUPS = [
+  { name: "피부 · 얼굴형", items: [
+    ["skin", "피부색", 25, "skin"],
+    ["faceWidth", "얼굴 너비", 50],
+    ["faceLength", "얼굴 길이", 50],
+    ["jaw", "턱 너비", 45],
+    ["blush", "볼 터치", 30],
+    ["earSize", "귀 크기", 50],
+  ]},
+  { name: "눈 · 눈썹", items: [
+    ["eyeSize", "눈 크기", 50],
+    ["eyeSpacing", "눈 사이 간격", 50],
+    ["eyeTilt", "눈꼬리 각도", 50],
+    ["eyeColor", "눈동자 색", 10, "eye"],
+    ["lashLength", "속눈썹 길이", 40],
+    ["browThick", "눈썹 두께", 45],
+    ["browHeight", "눈썹 높이", 50],
+    ["browAngle", "눈썹 각도", 50],
+  ]},
+  { name: "코", items: [
+    ["noseLength", "코 길이", 50],
+    ["noseWidth", "코 너비", 45],
+    ["noseTip", "코끝 모양 (뾰족 ↔ 둥근)", 50],
+    ["noseBridge", "콧대 높이", 50],
+  ]},
+  { name: "입", items: [
+    ["mouthWidth", "입 너비", 45],
+    ["smile", "표정 (시무룩 ↔ 웃음)", 65],
+    ["lipThick", "입술 두께", 45],
+    ["lipColor", "입술 색", 30, "lip"],
+  ]},
+  { name: "머리카락", items: [
+    ["hairColor", "머리 색", 10, "hair"],
+    ["hairLength", "머리 길이", 55],
+    ["bangs", "앞머리 길이", 45],
+  ]},
+];
+const SLIDERS = GROUPS.flatMap(g => g.items.map(([id, label, def, pal]) => ({ id, label, def, pal })));
+const DEFAULTS = Object.fromEntries(SLIDERS.map(s => [s.id, s.def]));
+
+const PALETTES = {
+  skin: ["#fde9da", "#f7d4b8", "#ecbb96", "#d39b72", "#b07850", "#8a5634", "#5e3820", "#3b2214"],
+  eye:  ["#3b2416", "#6b4423", "#8e6b3a", "#6e7d3b", "#3f7a5a", "#4f86b5", "#8aa9c4", "#7d7f86"],
+  lip:  ["#d98c8c", "#e0707a", "#cc4b5d", "#b0303f", "#a65a4e", "#8a3f55", "#c46a9a"],
+  hair: ["#1c1714", "#3d2a1e", "#6b4429", "#9c6b3d", "#d4a965", "#efd9a2", "#b5452c", "#8f8f93", "#5b6fd6", "#e07ab0"],
+};
+
+// ---------- 색상 유틸 ----------
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = c => "#" + c.map(v => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0")).join("");
+function palAt(pal, v) {
+  const t = (v / 100) * (pal.length - 1), i = Math.min(Math.floor(t), pal.length - 2), f = t - i;
+  const a = hex2rgb(pal[i]), b = hex2rgb(pal[i + 1]);
+  return rgb2hex(a.map((x, k) => x + (b[k] - x) * f));
+}
+const shade = (hex, amt) => rgb2hex(hex2rgb(hex).map(v => amt < 0 ? v * (1 + amt) : v + (255 - v) * amt));
+const m = (v, a, b) => a + (b - a) * v / 100;
+
+// ---------- 얼굴 그리기 ----------
+function faceSVG(p, uid) {
+  const cx = 200, cy = 235;
+  const rx = m(p.faceWidth, 92, 128), ry = m(p.faceLength, 112, 148);
+  const jaw = m(p.jaw, 0.22, 0.78);
+  const skin = palAt(PALETTES.skin, p.skin);
+  const skinDark = shade(skin, -0.18), skinLine = shade(skin, -0.35);
+  const hair = palAt(PALETTES.hair, p.hairColor), hairDark = shade(hair, -0.3);
+  const lip = palAt(PALETTES.lip, p.lipColor);
+  const iris = palAt(PALETTES.eye, p.eyeColor);
+
+  const eyeY = cy - 8;
+  const es = m(p.eyeSize, 0.7, 1.45);
+  const sp = m(p.eyeSpacing, 32, 54);
+  const tilt = m(p.eyeTilt, -14, 14);
+  const lash = m(p.lashLength, 0, 17);
+
+  const out = [];
+
+  // 뒷머리
+  const R = rx + 14, hb = m(p.hairLength, cy + 5, 480);
+  out.push(`<path d="M${cx - R},${cy} L${cx - R - 6},${hb} Q${cx},${hb + 22} ${cx + R + 6},${hb} L${cx + R},${cy} A${R} ${ry + 16} 0 0 0 ${cx - R},${cy} Z" fill="${hairDark}"/>`);
+
+  // 목 & 어깨
+  const neckTop = cy + ry * 0.5;
+  out.push(`<path d="M30,500 C40,420 110,${cy + ry + 38} ${cx},${cy + ry + 30} C290,${cy + ry + 38} 360,420 370,500 Z" fill="#6c8fd1"/>`);
+  out.push(`<rect x="${cx - 30}" y="${neckTop}" width="60" height="${cy + ry + 34 - neckTop}" rx="12" fill="${skinDark}"/>`);
+  out.push(`<path d="M${cx - 34},${cy + ry + 30} Q${cx},${cy + ry + 66} ${cx + 34},${cy + ry + 30}" fill="${skinDark}"/>`);
+
+  // 귀
+  const ers = m(p.earSize, 0.7, 1.35);
+  [-1, 1].forEach(d => {
+    const ex = cx + d * rx * 0.97, ey = eyeY + 12;
+    out.push(`<ellipse cx="${ex}" cy="${ey}" rx="${12 * ers}" ry="${21 * ers}" fill="${skin}" stroke="${skinLine}" stroke-width="2"/>`);
+    out.push(`<path d="M${ex + d * 3 * ers},${ey - 12 * ers} Q${ex + d * 8 * ers},${ey} ${ex + d * 2 * ers},${ey + 12 * ers}" fill="none" stroke="${skinLine}" stroke-width="2" stroke-linecap="round" opacity=".6"/>`);
+  });
+
+  // 얼굴형
+  const face = `M${cx},${cy - ry}
+    C${cx + rx * 0.58},${cy - ry} ${cx + rx},${cy - ry * 0.55} ${cx + rx},${cy - ry * 0.02}
+    C${cx + rx},${cy + ry * 0.42} ${cx + rx * jaw},${cy + ry * 0.92} ${cx},${cy + ry}
+    C${cx - rx * jaw},${cy + ry * 0.92} ${cx - rx},${cy + ry * 0.42} ${cx - rx},${cy - ry * 0.02}
+    C${cx - rx},${cy - ry * 0.55} ${cx - rx * 0.58},${cy - ry} ${cx},${cy - ry} Z`;
+  out.push(`<path d="${face}" fill="${skin}" stroke="${skinLine}" stroke-width="2.5"/>`);
+
+  // 볼 터치
+  const bo = m(p.blush, 0, 0.55);
+  if (bo > 0.01) [-1, 1].forEach(d =>
+    out.push(`<ellipse cx="${cx + d * (sp + 24)}" cy="${eyeY + 46}" rx="22" ry="12" fill="#ff7a8a" opacity="${bo}" filter="url(#blur${uid})"/>`));
+
+  // 눈
+  [-1, 1].forEach(d => {
+    const ex = cx + d * sp, erx = 17 * es, ery = 10.5 * es;
+    const rot = -d * tilt; // 왼쪽 눈(d=-1)은 +tilt 회전 → 바깥 눈꼬리 올라감
+    const g = [];
+    g.push(`<clipPath id="eye${uid}${d}"><ellipse cx="${ex}" cy="${eyeY}" rx="${erx}" ry="${ery}"/></clipPath>`);
+    g.push(`<ellipse cx="${ex}" cy="${eyeY}" rx="${erx}" ry="${ery}" fill="#fff"/>`);
+    g.push(`<g clip-path="url(#eye${uid}${d})">
+      <circle cx="${ex}" cy="${eyeY}" r="${8.6 * es}" fill="${iris}"/>
+      <circle cx="${ex}" cy="${eyeY}" r="${8.6 * es}" fill="none" stroke="${shade(iris, -0.4)}" stroke-width="1.5"/>
+      <circle cx="${ex}" cy="${eyeY}" r="${3.8 * es}" fill="#111"/>
+      <circle cx="${ex + 3 * es}" cy="${eyeY - 3 * es}" r="${2.2 * es}" fill="#fff" opacity=".9"/>
+      <path d="M${ex - erx},${eyeY - ery * 0.3} Q${ex},${eyeY - ery * 1.6} ${ex + erx},${eyeY - ery * 0.3} L${ex + erx},${eyeY - ery * 2} L${ex - erx},${eyeY - ery * 2} Z" fill="${skinDark}" opacity=".25"/>
+    </g>`);
+    // 윗눈꺼풀 라인
+    g.push(`<path d="M${ex - erx - 1},${eyeY + 1} A${erx + 1} ${ery + 1} 0 0 1 ${ex + erx + 1},${eyeY + 1}" fill="none" stroke="#2a1d17" stroke-width="${2.6 + es}" stroke-linecap="round"/>`);
+    g.push(`<path d="M${ex - erx * 0.8},${eyeY + ery * 0.6} Q${ex},${eyeY + ery * 1.25} ${ex + erx * 0.8},${eyeY + ery * 0.6}" fill="none" stroke="${skinLine}" stroke-width="1.2" opacity=".6"/>`);
+    // 쌍꺼풀
+    g.push(`<path d="M${ex - erx * 0.85},${eyeY - ery * 0.95} Q${ex},${eyeY - ery * 1.75} ${ex + erx * 0.9},${eyeY - ery * 0.85}" fill="none" stroke="${skinLine}" stroke-width="1.3" opacity=".55"/>`);
+    // 속눈썹
+    if (lash > 0.5) {
+      const n = 7;
+      for (let i = 0; i < n; i++) {
+        const t = 0.12 + (0.76 * i) / (n - 1);            // 0..1 왼→오
+        const th = Math.PI * (1 - t);                       // 180°→0°
+        const bx = ex + (erx + 1) * Math.cos(th), by = eyeY + 1 - (ery + 1) * Math.sin(th);
+        // 바깥쪽(눈꼬리 방향)으로 갈수록 길고 기울어지게
+        const outer = d < 0 ? 1 - t : t;
+        const L = lash * (0.65 + 0.55 * outer);
+        let nx = Math.cos(th), ny = -Math.sin(th);
+        nx += d * 0.35 * outer; const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl;
+        const tx = bx + nx * L, ty = by + ny * L;
+        const qx = bx + nx * L * 0.6 + d * L * 0.25, qy = by + ny * L * 0.35;
+        g.push(`<path d="M${bx},${by} Q${qx},${qy} ${tx},${ty}" fill="none" stroke="#1d1410" stroke-width="1.6" stroke-linecap="round"/>`);
+      }
+    }
+    out.push(`<g transform="rotate(${rot} ${ex} ${eyeY})">${g.join("")}</g>`);
+
+    // 눈썹
+    const bh = m(p.browHeight, 16, 36), bt = m(p.browThick, 2, 10), ba = m(p.browAngle, -16, 16);
+    const by0 = eyeY - ery - bh * 0.6 - 8;
+    const bw = 22 * Math.max(es, 0.9);
+    const browC = shade(hair, -0.15);
+    out.push(`<path transform="rotate(${-d * ba} ${ex} ${by0})" d="M${ex - bw},${by0 + 4} Q${ex - d * 4},${by0 - 7} ${ex + bw},${by0 + 2}" fill="none" stroke="${browC}" stroke-width="${bt}" stroke-linecap="round"/>`);
+  });
+
+  // 코
+  const nl = m(p.noseLength, 28, 62), nw = m(p.noseWidth, 9, 24), round = m(p.noseTip, 0, 12), bridge = m(p.noseBridge, 0.15, 0.85);
+  const ty = eyeY + nl;
+  out.push(`<path d="M${cx - 5},${eyeY + 2} Q${cx - 9},${(eyeY + ty) / 2} ${cx - nw * 0.55},${ty - 6}" fill="none" stroke="${skinLine}" stroke-width="2" stroke-linecap="round" opacity="${bridge}"/>`);
+  out.push(`<path d="M${cx + 7},${eyeY + 8} L${cx + 3},${ty - 10}" stroke="#fff" stroke-width="${3 + bridge * 3}" stroke-linecap="round" opacity="${bridge * 0.35}"/>`);
+  out.push(`<path d="M${cx - nw},${ty - 4}
+      Q${cx - nw - 5},${ty + 6} ${cx - nw * 0.45},${ty + 6}
+      Q${cx},${ty + 4 + round} ${cx + nw * 0.45},${ty + 6}
+      Q${cx + nw + 5},${ty + 6} ${cx + nw},${ty - 4}"
+      fill="none" stroke="${skinLine}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`);
+  if (round < 4) out.push(`<path d="M${cx - 4},${ty + 1} L${cx},${ty - 2 - (4 - round)} L${cx + 4},${ty + 1}" fill="none" stroke="${skinLine}" stroke-width="1.4" opacity=".5"/>`);
+  else out.push(`<ellipse cx="${cx}" cy="${ty - 1}" rx="${nw * 0.35 + round * 0.3}" ry="${3 + round * 0.25}" fill="#fff" opacity=".18"/>`);
+  [-1, 1].forEach(d => out.push(`<ellipse cx="${cx + d * nw * 0.42}" cy="${ty + 3}" rx="${2.2 + nw * 0.08}" ry="2" fill="${shade(skin, -0.45)}" opacity=".7"/>`));
+
+  // 입
+  const my = Math.max(ty + 26, cy + ry * 0.55);
+  const mw = m(p.mouthWidth, 20, 46), sm = m(p.smile, -12, 15), lt = m(p.lipThick, 3, 11);
+  const cyC = my - sm * 0.9;            // 입꼬리
+  const mid = my + sm * 0.35;           // 가운데 입술선
+  const L = cx - mw, Rr = cx + mw;
+  const upper = `M${L},${cyC}
+      C${cx - mw * 0.6},${mid - lt * 0.9} ${cx - mw * 0.25},${mid - lt * 1.25} ${cx},${mid - lt * 0.75}
+      C${cx + mw * 0.25},${mid - lt * 1.25} ${cx + mw * 0.6},${mid - lt * 0.9} ${Rr},${cyC}
+      Q${cx},${mid + 2} ${L},${cyC} Z`;
+  const lower = `M${L},${cyC} Q${cx},${mid + 2} ${Rr},${cyC} Q${cx + mw * 0.2},${mid + lt * 1.9 + 2} ${cx},${mid + lt * 1.7 + 2} Q${cx - mw * 0.2},${mid + lt * 1.9 + 2} ${L},${cyC} Z`;
+  out.push(`<path d="${lower}" fill="${lip}"/>`);
+  out.push(`<path d="${upper}" fill="${shade(lip, -0.12)}"/>`);
+  out.push(`<path d="M${L},${cyC} Q${cx},${mid + 2} ${Rr},${cyC}" fill="none" stroke="${shade(lip, -0.5)}" stroke-width="1.8" stroke-linecap="round"/>`);
+  out.push(`<ellipse cx="${cx}" cy="${mid + lt * 0.9 + 2}" rx="${mw * 0.25}" ry="${lt * 0.25}" fill="#fff" opacity=".25"/>`);
+  if (sm > 6) [-1, 1].forEach(d => out.push(`<path d="M${cx + d * (mw + 3)},${cyC - 4} q${d * 4},4 0,9" fill="none" stroke="${skinLine}" stroke-width="1.4" opacity=".5"/>`));
+
+  // 앞머리
+  const bY = m(p.bangs, cy - ry * 0.9, cy - ry * 0.3);
+  const sideY = cy - ry * 0.15;
+  out.push(`<path d="M${cx - rx - 6},${sideY}
+      C${cx - rx - 10},${cy - ry - 10} ${cx - rx * 0.4},${cy - ry - 22} ${cx},${cy - ry - 18}
+      C${cx + rx * 0.4},${cy - ry - 22} ${cx + rx + 10},${cy - ry - 10} ${cx + rx + 6},${sideY}
+      Q${cx + rx * 0.85},${bY - 18} ${cx + rx * 0.55},${bY - 4}
+      Q${cx + rx * 0.35},${bY - 20} ${cx + rx * 0.1},${bY}
+      Q${cx - rx * 0.1},${bY - 22} ${cx - rx * 0.35},${bY + 2}
+      Q${cx - rx * 0.55},${bY - 18} ${cx - rx * 0.75},${bY - 2}
+      Q${cx - rx * 0.92},${bY - 10} ${cx - rx - 6},${sideY} Z" fill="${hair}"/>`);
+  out.push(`<path d="M${cx - rx * 0.3},${cy - ry - 8} Q${cx},${cy - ry - 14} ${cx + rx * 0.35},${cy - ry - 6}" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".18"/>`);
+
+  return `<defs><filter id="blur${uid}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter></defs>` + out.join("");
+}
+
+// ---------- 상태 & UI ----------
+const state = { ...DEFAULTS };
+let mode = "free", target = null, roundNo = 1, startT = 0, won = false, best = null, timerId = null;
+const $ = id => document.getElementById(id);
+const inputs = {};
+
+function gradientFor(pal) { return `linear-gradient(90deg, ${pal.join(",")})`; }
+
+function buildPanel() {
+  const panel = $("panel");
+  GROUPS.forEach((g, gi) => {
+    const det = document.createElement("details");
+    det.className = "group"; det.open = gi < 3;
+    det.innerHTML = `<summary>${g.name}</summary>`;
+    g.items.forEach(([id, label, def, pal]) => {
+      const row = document.createElement("div");
+      row.className = "row"; row.id = "row-" + id;
+      row.innerHTML = `<label for="s-${id}"><span>${label}</span><span id="v-${id}">${def}</span></label>
+        <input type="range" id="s-${id}" min="0" max="100" value="${def}">`;
+      const inp = row.querySelector("input");
+      if (pal) { inp.classList.add("grad"); inp.style.background = gradientFor(PALETTES[pal]); }
+      inp.addEventListener("input", () => { state[id] = +inp.value; row.classList.remove("hint"); update(); });
+      inputs[id] = inp;
+      det.appendChild(row);
+    });
+    panel.appendChild(det);
+  });
+}
+
+function syncInputs() {
+  SLIDERS.forEach(s => { inputs[s.id].value = state[s.id]; });
+}
+
+function similarity() {
+  const diffs = SLIDERS.map(s => Math.abs(state[s.id] - target[s.id]) / 100);
+  const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+  return Math.max(0, Math.round(100 - avg * 200));
+}
+
+function update() {
+  $("faceSvg").innerHTML = faceSVG(state, "me");
+  SLIDERS.forEach(s => { $("v-" + s.id).textContent = state[s.id]; });
+  if (mode === "game" && target) {
+    const pct = similarity();
+    $("matchPct").textContent = pct + "%";
+    $("meter").firstElementChild.style.width = pct + "%";
+    $("meter").classList.toggle("win", pct >= 90);
+    if (pct >= 90 && !won) {
+      won = true; clearInterval(timerId);
+      const t = (performance.now() - startT) / 1000;
+      if (best === null || t < best) best = t;
+      $("best").textContent = best.toFixed(1) + "s";
+      $("msg").textContent = `🎉 성공! ${t.toFixed(1)}초 만에 똑같이 만들었어요. '다음 얼굴'을 눌러 계속하세요.`;
+      $("msg").className = "msg win";
+    }
+  }
+}
+
+function randomFace() {
+  const r = {};
+  SLIDERS.forEach(s => { r[s.id] = Math.round(Math.random() * 100); });
+  return r;
+}
+
+function newRound() {
+  target = randomFace();
+  $("targetSvg").innerHTML = faceSVG(target, "tg");
+  Object.assign(state, DEFAULTS); syncInputs();
+  document.querySelectorAll(".row.hint").forEach(r => r.classList.remove("hint"));
+  won = false;
+  $("round").textContent = roundNo;
+  $("msg").textContent = "막대바를 움직여 목표 얼굴과 똑같이 만들어 보세요! (90% 이상이면 성공)";
+  $("msg").className = "msg";
+  startT = performance.now();
+  clearInterval(timerId);
+  timerId = setInterval(() => { $("timer").textContent = ((performance.now() - startT) / 1000).toFixed(1) + "s"; }, 100);
+  update();
+}
+
+function setMode(m2) {
+  mode = m2;
+  document.body.classList.toggle("game", mode === "game");
+  $("tabFree").classList.toggle("on", mode === "free");
+  $("tabGame").classList.toggle("on", mode === "game");
+  $("myTag").textContent = mode === "game" ? "✏️ 내 얼굴" : "내 얼굴";
+  if (mode === "game") { roundNo = 1; newRound(); }
+  else { clearInterval(timerId); document.querySelectorAll(".row.hint").forEach(r => r.classList.remove("hint")); update(); }
+}
+
+function hint() {
+  if (!target) return;
+  let worst = null, wd = -1;
+  SLIDERS.forEach(s => { const d = Math.abs(state[s.id] - target[s.id]); if (d > wd) { wd = d; worst = s; } });
+  document.querySelectorAll(".row.hint").forEach(r => r.classList.remove("hint"));
+  const row = $("row-" + worst.id);
+  row.closest("details").open = true;
+  row.classList.add("hint");
+  row.scrollIntoView({ behavior: "smooth", block: "center" });
+  const dir = target[worst.id] > state[worst.id] ? "오른쪽(▶)" : "왼쪽(◀)";
+  $("msg").textContent = `💡 '${worst.label}'이(가) 가장 많이 달라요. ${dir}으로 움직여 보세요.`;
+  $("msg").className = "msg";
+}
+
+function savePNG() {
+  const svg = $("faceSvg");
+  const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="800" height="1000"><rect width="400" height="500" fill="#fbf8f4"/>${svg.innerHTML}</svg>`;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas"); c.width = 800; c.height = 1000;
+    c.getContext("2d").drawImage(img, 0, 0, 800, 1000);
+    const a = document.createElement("a"); a.download = "my-face.png"; a.href = c.toDataURL("image/png"); a.click();
+  };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+}
+
+buildPanel();
+$("tabFree").onclick = () => setMode("free");
+$("tabGame").onclick = () => setMode("game");
+$("randomBtn").onclick = () => { Object.assign(state, randomFace()); syncInputs(); update(); };
+$("resetBtn").onclick = () => { Object.assign(state, DEFAULTS); syncInputs(); update(); };
+$("saveBtn").onclick = savePNG;
+$("hintBtn").onclick = hint;
+$("nextBtn").onclick = () => { roundNo++; newRound(); };
+update();
+</script>
+</body>
+</html>
