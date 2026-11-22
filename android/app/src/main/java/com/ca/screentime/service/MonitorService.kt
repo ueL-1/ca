@@ -3,7 +3,6 @@ package com.ca.screentime.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -16,13 +15,11 @@ import android.os.SystemClock
 import android.telecom.TelecomManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.ca.screentime.R
 import com.ca.screentime.data.Engine
 import com.ca.screentime.data.Evaluation
 import com.ca.screentime.data.Mode
 import com.ca.screentime.data.Permissions
 import com.ca.screentime.data.TimeRules
-import com.ca.screentime.ui.MainActivity
 import com.ca.screentime.ui.OverlayModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +49,7 @@ class MonitorService : Service() {
     private var pendingBlockedDay: LocalDate? = null
     private var lastUsageMs = 0L
     private var lastDay: LocalDate? = null
-    private var lastNotificationText = ""
+    private var lastNotification: UsageNotificationContent? = null
     private var dialerGraceUntil = 0L
 
     private val receiver = object : BroadcastReceiver() {
@@ -68,7 +65,7 @@ class MonitorService : Service() {
         engine = Engine(this)
         overlay = OverlayController(this)
         ensureChannel(this)
-        goForeground(buildNotification("사용시간을 확인하고 있어요"))
+        goForeground(UsageNotification.build(this, UsageNotification.waiting(this, "사용시간을 확인하고 있어요")))
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
@@ -94,7 +91,9 @@ class MonitorService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        goForeground(buildNotification(lastNotificationText.ifEmpty { "사용시간을 확인하고 있어요" }))
+        goForeground(
+            UsageNotification.build(this, lastNotification ?: UsageNotification.waiting(this, "사용시간을 확인하고 있어요")),
+        )
         wake.trySend(Unit)
         return START_STICKY
     }
@@ -111,7 +110,7 @@ class MonitorService : Service() {
     private suspend fun tick(): Long {
         if (!Permissions.hasUsageAccess(this)) {
             overlay.hide()
-            updateNotification("사용정보 접근 권한이 필요해요")
+            updateNotification(UsageNotification.waiting(this, "사용정보 접근 권한이 필요해요"))
             return 5_000L
         }
 
@@ -150,7 +149,7 @@ class MonitorService : Service() {
         }
         if (pendingBlockedMs >= 10_000L) flushBlocked()
 
-        updateNotification(notificationText(day, eval))
+        updateNotification(UsageNotification.content(day, eval))
         return if (status.screenActive) 1_000L else 5_000L
     }
 
@@ -200,37 +199,12 @@ class MonitorService : Service() {
         pendingBlockedMs = 0L
     }
 
-    private fun notificationText(day: LocalDate, eval: Evaluation): String {
-        val usedMin = eval.usageMs / 60_000L
-        return when (eval.mode) {
-            Mode.NORMAL -> "오늘 ${TimeRules.words(usedMin)} 사용 · 남은 시간 ${TimeRules.words(eval.limitMinutes - usedMin)}"
-            Mode.EXTRA_ACTIVE -> "딱 10분! 사용 중 · 남은 시간 ${TimeRules.words((eval.extraRemainingMs + 59_999L) / 60_000L)}"
-            Mode.OVER -> "오늘 한도 초과 · 내일 00:00에 다시 열려요"
-            Mode.WEEK_UNLOCKED -> "이번 주 제한 해제 중 · ${TimeRules.shortText(TimeRules.weekLastDay(day))} 24:00까지"
-        }
-    }
-
-    private fun updateNotification(text: String) {
-        if (text == lastNotificationText) return
-        lastNotificationText = text
-        getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, buildNotification(text))
-    }
-
-    private fun buildNotification(text: String): Notification {
-        val open = PendingIntent.getActivity(
-            this, 0,
-            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        return Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_clawd)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(text)
-            .setContentIntent(open)
-            .setOngoing(true)
-            .setShowWhen(false)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .build()
+    /** 내용(글자·막대)이 바뀔 때만 알림을 다시 올린다. */
+    private fun updateNotification(content: UsageNotificationContent) {
+        if (content == lastNotification) return
+        lastNotification = content
+        getSystemService(NotificationManager::class.java)
+            ?.notify(UsageNotification.ID, UsageNotification.build(this, content))
     }
 
     private fun goForeground(notification: Notification) {
@@ -248,8 +222,8 @@ class MonitorService : Service() {
 
     companion object {
         private const val TAG = "MonitorService"
-        private const val CHANNEL_ID = "monitor"
-        private const val NOTIFICATION_ID = 1
+        private const val CHANNEL_ID = UsageNotification.CHANNEL_ID
+        private const val NOTIFICATION_ID = UsageNotification.ID
 
         fun ensureChannel(context: Context) {
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
