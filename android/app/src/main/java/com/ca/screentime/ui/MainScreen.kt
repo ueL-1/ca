@@ -67,21 +67,28 @@ fun MainScreen(
     var message by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     val selDay = DayOfWeek.of(selected)
 
-    fun change(hours: Int, minuteSteps: Int) {
-        val idx = selDay.value - 1
+    // 주의: 여기서 로컬 함수 참조(::함수)를 넘기면 안 된다.
+    // 함수 참조의 equals()는 캡처한 값(선택한 요일)을 비교하지 않아서, Compose가 요일이 바뀐 뒤에도
+    // "같은 함수"로 보고 처음 만든 버튼 핸들러(= 처음 선택돼 있던 오늘 요일)를 계속 쓴다.
+    // 그래서 람다로 넘기고, 바꿀 요일은 버튼을 누른 순간의 선택 상태에서 읽는다.
+    val onChange: (Int, Int) -> Unit = { hours, minuteSteps ->
+        val day = DayOfWeek.of(selected)
+        val idx = day.value - 1
         val cur = limits[idx]
         val h = (cur / 60 + hours).coerceIn(0, 23)
         val m = ((cur % 60 + minuteSteps * 5) % 60 + 60) % 60
         val next = (h * 60 + m).coerceIn(0, Store.MAX_LIMIT_MINUTES)
-        if (next == cur) return
         val exceededToday = store.exceededOn(today) || status?.eval?.exceeded == true
-        if (selDay == today.dayOfWeek && next > cur && exceededToday) {
-            message = false to "오늘은 이미 한도를 넘어서 오늘 한도는 늘릴 수 없어요"
-            return
+        when {
+            next == cur -> Unit
+            day == today.dayOfWeek && next > cur && exceededToday ->
+                message = false to "오늘은 이미 한도를 넘어서 오늘 한도는 늘릴 수 없어요"
+            else -> {
+                store.setLimitMinutes(day, next)
+                limits[idx] = next
+                message = true to "${TimeRules.dayName(day)} 한도를 ${TimeRules.words(next.toLong())}으로 저장했어요"
+            }
         }
-        store.setLimitMinutes(selDay, next)
-        limits[idx] = next
-        message = true to "${TimeRules.dayName(selDay)} 한도를 ${TimeRules.words(next.toLong())}으로 저장했어요"
     }
 
     Column(
@@ -103,7 +110,7 @@ fun MainScreen(
             isToday = selDay == today.dayOfWeek,
             minutes = limits[selDay.value - 1],
             message = message,
-            onChange = ::change,
+            onChange = onChange,
         )
         StatusTiles(today, status, store)
     }

@@ -14,8 +14,8 @@ android {
         applicationId = "com.ca.screentime"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.1.1"
     }
 
     buildTypes {
@@ -35,6 +35,19 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            // Robolectric이 쓰는 Android 런타임은 Google의 Maven Central 미러에서 받는다.
+            all {
+                it.systemProperty(
+                    "robolectric.dependency.repo.url",
+                    "https://maven-central.storage-download.googleapis.com/maven2",
+                )
+            }
+        }
     }
 }
 
@@ -57,4 +70,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     testImplementation("junit:junit:4.13.2")
+    // 화면 조작 테스트 (Robolectric + Compose UI 테스트)
+    testImplementation(composeBom)
+    testImplementation("org.robolectric:robolectric:4.16")
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
