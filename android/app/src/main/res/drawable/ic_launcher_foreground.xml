@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Claude Code 픽셀 캐릭터 (18x10 격자, 1칸 = 3.2) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#D97757"
+        android:pathData="M34.8,38h38.4v25.6h-38.4z M28.4,50.8h6.4v6.4h-6.4z M73.2,50.8h6.4v6.4h-6.4z M38,63.6h3.2v6.4h-3.2z M44.4,63.6h3.2v6.4h-3.2z M60.4,63.6h3.2v6.4h-3.2z M66.8,63.6h3.2v6.4h-3.2z" />
+    <path
+        android:fillColor="#141413"
+        android:pathData="M41.2,44.4h3.2v6.4h-3.2z M63.6,44.4h3.2v6.4h-3.2z" />
+</vector>
