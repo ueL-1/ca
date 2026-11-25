@@ -15,6 +15,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.ca.screentime.ui.AppTheme
 import com.ca.screentime.ui.OverLimitScreen
 import com.ca.screentime.ui.OverlayModel
 
@@ -35,7 +36,7 @@ class OverlayController(private val context: Context) {
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeSavedStateRegistryOwner(lifecycleOwner)
             setContent {
-                model.value?.let { OverLimitScreen(it) }
+                model.value?.let { AppTheme { OverLimitScreen(it) } }
             }
         }
         val params = WindowManager.LayoutParams(

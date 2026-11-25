@@ -76,7 +76,7 @@ fun OverLimitScreen(m: OverlayModel) {
                 Spacer(Modifier.height(30.dp))
                 Text(
                     "오늘 한도 초과",
-                    color = Palette.NightInk,
+                    color = Palette.NightHead,
                     fontSize = 40.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = (-1).sp,
@@ -193,7 +193,7 @@ private fun BigButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.height(76.dp),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(Radius.BIG_BUTTON.dp),
         color = container,
         border = border,
     ) {

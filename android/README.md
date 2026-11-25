@@ -4,7 +4,7 @@
 
 ## 설치
 
-1. `dist/screentime-1.2.0.apk`를 휴대폰으로 받아 실행합니다. (Android 9 이상)
+1. `dist/screentime-1.3.0.apk`를 휴대폰으로 받아 실행합니다. (Android 9 이상)
 2. "출처를 알 수 없는 앱" 허용을 묻으면 허용합니다. Play 프로텍트 경고가 뜨면 "그래도 설치"를 누릅니다.
 3. 앱의 **권한·설정** 탭에서 필수 권한 2개를 허용합니다.
    - 사용정보 접근
@@ -43,3 +43,8 @@ echo "sdk.dir=/path/to/android-sdk" > local.properties   # platforms;android-36,
 ```
 
 Kotlin + Jetpack Compose, minSdk 28 / targetSdk 36.
+
+## 디자인 · 글꼴
+
+- 테마: 다크 모드 (승인된 테마 샘플 B)
+- 글꼴: [IBM Plex Sans KR](https://github.com/IBM/plex) Regular·Medium·SemiBold·Bold — SIL Open Font License 1.1. 원본 글꼴을 그대로(woff → ttf 무손실 변환) 넣었고, 라이선스 전문은 `app/src/main/assets/licenses/IBM-Plex-Sans-KR-OFL.txt`에 있습니다.

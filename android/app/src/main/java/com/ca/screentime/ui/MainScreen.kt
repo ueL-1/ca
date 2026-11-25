@@ -289,7 +289,7 @@ private fun DaySelector(
                             contentDescription = TimeRules.dayName(day) + " 최대 " +
                                 TimeRules.words(limits[day.value - 1].toLong()) + if (isToday) ", 오늘" else ""
                         },
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(Radius.DAY_PILL.dp),
                     color = if (on) Palette.Ink else Palette.Surface,
                     border = BorderStroke(1.dp, if (on) Palette.Ink else Palette.Line),
                 ) {
@@ -299,7 +299,7 @@ private fun DaySelector(
                     ) {
                         Text(
                             TimeRules.dayLetter(day),
-                            color = if (on) Color.White else Palette.Ink,
+                            color = if (on) Palette.OnSelected else Palette.Ink,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.ExtraBold,
                         )
@@ -326,7 +326,7 @@ private fun PickerCard(
     message: Pair<Boolean, String>?,
     onChange: (hours: Int, minuteSteps: Int) -> Unit,
 ) {
-    Card(radius = 24) {
+    Card(radius = Radius.CARD) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -470,7 +470,7 @@ private fun StatusTiles(today: LocalDate, status: Engine.Status?, store: Store) 
 
 @Composable
 private fun Tile(title: String, value: String, valueColor: Color, sub: String, modifier: Modifier) {
-    Card(modifier = modifier, radius = 18) {
+    Card(modifier = modifier, radius = Radius.TILE) {
         Column(
             Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp),
@@ -483,7 +483,7 @@ private fun Tile(title: String, value: String, valueColor: Color, sub: String, m
 }
 
 @Composable
-fun Card(modifier: Modifier = Modifier, radius: Int = 20, content: @Composable () -> Unit) {
+fun Card(modifier: Modifier = Modifier, radius: Int = Radius.CARD, content: @Composable () -> Unit) {
     Box(
         modifier
             .fillMaxWidth()

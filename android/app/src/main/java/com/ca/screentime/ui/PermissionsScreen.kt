@@ -114,14 +114,14 @@ fun PermissionsScreen(perms: PermissionState, onChanged: () -> Unit, modifier: M
             granted = perms.phone,
         ) { requestPermission.launch(Manifest.permission.READ_PHONE_STATE) }
 
-        Card(radius = 18) {
+        Card(radius = Radius.TILE) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("알아두세요", color = Palette.Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 Bullet("화면이 꺼져 있는 시간은 앱이 실행 중이어도 사용시간에 넣지 않아요.")
                 Bullet("전화·통화 화면·긴급전화는 제한하지 않고, 사용시간에도 넣지 않아요.")
                 Bullet("잠금화면의 긴급전화는 언제나 쓸 수 있어요.")
                 Bullet("한도를 넘은 날에는 그 날 한도를 늘릴 수 없어요. 줄이는 것은 언제든 가능해요.")
-                Bullet("삼성·샤오미 등은 설정 › 배터리에서 이 앱을 '제한 없음'으로 두면 더 안정적이에요.")
+                Bullet("삼성·샤오미 등은 설정의 배터리 메뉴에서 이 앱을 '제한 없음'으로 두면 더 안정적이에요.")
             }
         }
     }
@@ -143,7 +143,7 @@ private fun PermissionRow(
     granted: Boolean,
     onGrant: () -> Unit,
 ) {
-    Card(radius = 18) {
+    Card(radius = Radius.TILE) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -182,7 +182,7 @@ private fun PermissionRow(
                     border = BorderStroke(1.dp, Palette.Ink),
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Text("허용하러 가기", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("허용하러 가기", color = Palette.OnSelected, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

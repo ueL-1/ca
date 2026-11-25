@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="screen_bg">#F6F5F1</color>
+    <color name="screen_bg">#17181C</color>
     <color name="ic_bg">#141413</color>
     <color name="notif_bar">#D97757</color>
 
-    <style name="Theme.ScreenTime" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.ScreenTime" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/screen_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 </resources>
